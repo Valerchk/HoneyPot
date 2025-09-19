@@ -1,0 +1,51 @@
+[
+    {
+        "timestamp": "2025-09-17T10:16:18.449734",
+        "login": "lucknitepro@gmail.com",
+        "password": "lulu",
+        "ip": "127.0.0.1",
+        "event": "fake_login_attempt"
+    },
+    {
+        "@timestamp": "2025-09-17T08:47:06.679249+00:00",
+        "login": "lucknitepro@gmail.com",
+        "password": "lulu",
+        "ip": "127.0.0.1",
+        "event": "fake_login_attempt"
+    },
+    {
+        "@timestamp": "2025-09-17T08:48:16.212872+00:00",
+        "login": "lulunewerkowitsch@gmail.com",
+        "password": "lulu",
+        "ip": "127.0.0.1",
+        "event": "fake_login_attempt"
+    },
+    {
+        "@timestamp": "2025-09-17T08:48:59.734242+00:00",
+        "login": "lucknitepro@gmail.com",
+        "password": "lululu",
+        "ip": "10.107.123.155",
+        "event": "fake_login_attempt"
+    },
+    {
+        "@timestamp": "2025-09-17T08:50:12.753862+00:00",
+        "login": "lulunewerkowitsch@gmail.com",
+        "password": "lulu",
+        "ip": "127.0.0.1",
+        "event": "fake_login_attempt"
+    },
+    {
+        "@timestamp": "2025-09-19T08:57:23.535137+00:00",
+        "login": "lulunewerkowitsch@gmail.com",
+        "password": "lulu",
+        "ip": "10.107.123.155",
+        "event": "fake_login_attempt"
+    },
+    {
+        "@timestamp": "2025-09-19T08:57:52.181986+00:00",
+        "login": "lucknitepro@gmail.com",
+        "password": "aaaaaa",
+        "ip": "127.0.0.1",
+        "event": "fake_login_attempt"
+    }
+]
