@@ -21,12 +21,12 @@ SSH_CONN_THRESHOLD = 20      # if TCP SYNs to SSH port in window > this -> suspi
 UNIQUE_SRC_THRESHOLD = 10    # many unique src IPs -> possible scan
 ALERT_COOLDOWN = 120         # 120s for testing | (avoid spamming email)
 # Email config via ENV variables (explained below)
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
-SMTP_USER = os.getenv("SMTP_USER", "secretariat.lps.official@gmail.com")
-SMTP_PASS = os.getenv("SMTP_PASS", "xtdu vchi sldx qmyi")
-ALERT_TO = os.getenv("ALERT_TO", "valer.business.contact@gmail.com")
-ALERT_FROM = os.getenv("ALERT_FROM", "no-reply@nosniff.com")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT"))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
+ALERT_TO = os.getenv("ALERT_TO")
+ALERT_FROM = os.getenv("ALERT_FROM")
 
 # ------------- Data structures -------------
 # store timestamps for events (sliding window)
@@ -134,7 +134,7 @@ def send_alert_email(subject, body, debug=True):
     try:
         if SMTP_PORT == 465:
             if debug: print(f"[ALERT] Using SMTP_SSL to {SMTP_SERVER}:{SMTP_PORT}")
-            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as s:
+            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=10) as s:
                 if debug: s.set_debuglevel(1)
                 s.login(SMTP_USER, SMTP_PASS)
                 s.send_message(msg)
@@ -144,7 +144,7 @@ def send_alert_email(subject, body, debug=True):
 
         # Otherwise try STARTTLS (typical for 587)
         if debug: print(f"[ALERT] Using SMTP + STARTTLS to {SMTP_SERVER}:{SMTP_PORT}")
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as s:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as s:
             if debug: s.set_debuglevel(1)
             s.ehlo()
             s.starttls()

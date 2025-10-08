@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtualenvs
+venv/
+.venv/
+
+# Secrets / env
+.env
+.env.*
+
+# Logs / outputs / captures
+*.log
+*.pcap
+passwords.txt
+bruteforce_output.txt
+
+# IDEs / OS
+.vscode/
+.idea/
+.DS_Store
