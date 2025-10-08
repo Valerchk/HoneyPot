@@ -1,30 +1,32 @@
-# sniff_localhost.py
 import os
 import sys
 import time
 import threading
 import smtplib
+from dotenv import load_dotenv
 from email.message import EmailMessage
 from collections import Counter, defaultdict, deque
 from scapy.all import sniff, get_if_list, TCP, IP, IPv6
 
+load_dotenv()
+
 # ------------- CONFIG -------------
-REPORT_INTERVAL = 10         # seconds between compact reports
+REPORT_INTERVAL = 10        # seconds between compact reports
 WINDOW_SECONDS = 60         # sliding window length for counting (seconds)
 SSH_PORTS = {22, 2222}      # ports considered SSH/Cowrie (add 2222 if you use it)
 SYN_FLAG = 0x02             # TCP SYN flag bitmask
 # Suspicion thresholds (tunable)
-TOTAL_PKT_THRESHOLD = 200    # if total packets in window > this -> suspicious
+TOTAL_PKT_THRESHOLD = 450    # if total packets in window > this -> suspicious
 SSH_CONN_THRESHOLD = 20      # if TCP SYNs to SSH port in window > this -> suspicious (likely brute-force)
 UNIQUE_SRC_THRESHOLD = 10    # many unique src IPs -> possible scan
-ALERT_COOLDOWN = 300         # seconds between sent alerts (avoid spamming email)
+ALERT_COOLDOWN = 120         # 120s for testing | (avoid spamming email)
 # Email config via ENV variables (explained below)
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
 SMTP_USER = os.getenv("SMTP_USER", "secretariat.lps.official@gmail.com")
 SMTP_PASS = os.getenv("SMTP_PASS", "xtdu vchi sldx qmyi")
 ALERT_TO = os.getenv("ALERT_TO", "valer.business.contact@gmail.com")
-ALERT_FROM = os.getenv("ALERT_FROM", SMTP_USER or "no-reply@nosniff.com")
+ALERT_FROM = os.getenv("ALERT_FROM", "no-reply@nosniff.com")
 
 # ------------- Data structures -------------
 # store timestamps for events (sliding window)
@@ -104,38 +106,65 @@ def is_suspicious(report):
         return True, "scan_many_srcs"
     return False, None
 
-def send_alert_email(subject, body):
+def send_alert_email(subject, body, debug=True):
+    """
+    Robust email sender:
+    - uses SMTP_SSL when SMTP_PORT == 465
+    - uses STARTTLS otherwise (e.g. 587)
+    - prints debug output and returns True on success
+    """
     global last_alert_time
     now = time.time()
     if now - last_alert_time < ALERT_COOLDOWN:
-        print("[ALERT] Alert suppressed due to cooldown.")
+        if debug: print("[ALERT] suppressed by cooldown")
         return False
-    # require SMTP_USER and SMTP_PASS for authenticated SMTP
+
     if not SMTP_USER or not SMTP_PASS:
-        print("[ALERT] No SMTP credentials configured. Set SMTP_USER and SMTP_PASS environment variables to enable real email alerts.")
-        print("[ALERT] Would send email:", subject)
-        print(body)
+        print("[ALERT] SMTP credentials missing. Will not send.")
         last_alert_time = now
         return False
 
-    try:
-        msg = EmailMessage()
-        msg["From"] = ALERT_FROM
-        msg["To"] = ALERT_TO
-        msg["Subject"] = subject
-        msg.set_content(body)
+    msg = EmailMessage()
+    msg["From"] = ALERT_FROM
+    msg["To"] = ALERT_TO
+    msg["Subject"] = subject
+    msg.set_content(body)
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as s:
+    # Try SMTPS (implicit SSL) when port == 465
+    try:
+        if SMTP_PORT == 465:
+            if debug: print(f"[ALERT] Using SMTP_SSL to {SMTP_SERVER}:{SMTP_PORT}")
+            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as s:
+                if debug: s.set_debuglevel(1)
+                s.login(SMTP_USER, SMTP_PASS)
+                s.send_message(msg)
+            print("[ALERT] Email sent via SMTP_SSL (465).")
+            last_alert_time = now
+            return True
+
+        # Otherwise try STARTTLS (typical for 587)
+        if debug: print(f"[ALERT] Using SMTP + STARTTLS to {SMTP_SERVER}:{SMTP_PORT}")
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as s:
+            if debug: s.set_debuglevel(1)
             s.ehlo()
             s.starttls()
+            s.ehlo()
             s.login(SMTP_USER, SMTP_PASS)
             s.send_message(msg)
-        print("[ALERT] Email sent to", ALERT_TO)
+        print("[ALERT] Email sent via STARTTLS.")
         last_alert_time = now
         return True
+
     except Exception as e:
-        print("[ALERT] Failed to send email:", e)
-        return False
+        # Print traceback for debugging
+        print("[ALERT] Failed to send email:", repr(e))
+        
+    # final fallback: print body
+    print("[ALERT] Could not send email. Alert body below:")
+    print("Subject:", subject)
+    print(body)
+    last_alert_time = now
+    return False
 
 # ------------- packet callback & collector -------------
 def pkt_callback(pkt):

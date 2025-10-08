@@ -10,19 +10,19 @@ select = input("Quelle attaque voulez vous faire ? : ")
 
 if select == "1":
     # Lance le script BruteForce.py
-    subprocess.run(["python", "BruteForce.py"])
+    subprocess.run(["python3", "simAttck.py"])
     print("Brute Force lancé")
 elif select == "2":
     # Lance le script DOS.py
-    subprocess.run(["python", "DOS.py"])
+    subprocess.run(["python3", "DOS.py"])
     print("DDOS lancé")
 elif select == "3":
     # Lance le script phishing.py
-    subprocess.run(["python", "Phishing/phishing.py"])
+    subprocess.run(["python3", "Phishing/phishing.py"])
     print("Phishing lancé")
 elif select == "4":
     # Lance le script SSH.py
-    subprocess.run(["python", "SSH.py"])
+    subprocess.run(["python3", "SSH.py"])
     print("Scan de port lancé")
 else:
     # Informe l'utilisateur que l'option est invalide
