@@ -9,7 +9,7 @@ SSH_PORT = 22
 HTTP_PORT = 9200
 UDP_PORT = 22
 
-NUM_CONNECTIONS = 200000    # nombre total de connexions par type
+NUM_CONNECTIONS = 200000    # nombre total de connexions divisé sur toutes les attaques
 CONCURRENCY = 200           # connexions simultanées max
 DELAY = 0.1                 # délai entre requêtes
 
@@ -82,3 +82,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
