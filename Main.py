@@ -18,7 +18,7 @@ elif select == "2":
     print("DDOS lancé")
 elif select == "3":
     # Lance le script phishing.py
-    subprocess.run(["python3", "Phishing/phishing.py"])
+    subprocess.run(["python3", "Phishing/start.py"])
     print("Phishing lancé")
 elif select == "4":
     # Lance le script SSH.py
