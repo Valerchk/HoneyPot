@@ -5,9 +5,7 @@ import json
 from datetime import datetime, timezone
 
 app = Flask(__name__)
-app.secret_key = 'ta_cle_secrete'
-
-# Configuration Elasticsearch avec le port 9200
+app.secret_key = 'SAE2025'
 es = Elasticsearch(['http://localhost:9200'])
 
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'logs', 'phishing_logs.json')
@@ -21,7 +19,6 @@ def initialize_log_file(file_path):
             json.dump([], f)
 
 initialize_log_file(LOG_FILE)
-# BACKUP_LOG_FILE is treated as append-only NDJSON, so we don't initialize it with an empty list.
 
 def read_logs(file_path):
     try:
