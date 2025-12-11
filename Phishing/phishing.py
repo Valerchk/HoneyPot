@@ -21,7 +21,7 @@ def initialize_log_file(file_path):
             json.dump([], f)
 
 initialize_log_file(LOG_FILE)
-initialize_log_file(BACKUP_LOG_FILE)
+# BACKUP_LOG_FILE is treated as append-only NDJSON, so we don't initialize it with an empty list.
 
 def read_logs(file_path):
     try:
